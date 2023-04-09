@@ -32,7 +32,7 @@ local ActionCheck = function()
             return true;
         end
     	
-    	if Statuses:FindFirstChild("Knocked") or Statuses:FindFirstChild("Climbing") or Statuses:FindFirstChild("Blocking") or Statuses:FindFirstChild("Stun") or Statuses:FindFirstChild("ReturnStun") or Statuses:FindFirstChild("ActiveCast") then
+    	if Character.Stats.Climbing.Value or Statuses:FindFirstChild("Knocked") --[[or Statuses:FindFirstChild("Climbing")]] or Statuses:FindFirstChild("Blocking") or Statuses:FindFirstChild("Stun") or Statuses:FindFirstChild("ReturnStun") or Statuses:FindFirstChild("ActiveCast") then
     		return true;
     	end
     else
@@ -67,6 +67,13 @@ _G.Connections = {
             if lastActive ~= canActivate then
                 Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
             end
+        end);
+        
+        _G.Connections._Climbing = Character.Stats.Climbing.Changed:Connect(function()
+            local canActivate = not ActionCheck();
+            if lastActive ~= canActivate then
+                Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
+            end
         end)
     end);
     
@@ -92,6 +99,13 @@ if Character then
     _G.Connections._WalkSpeedUpdate = Character.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
         local canActivate = not ActionCheck();
         
+        if lastActive ~= canActivate then
+            Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
+        end
+    end)
+    
+    _G.Connections._Climbing = Character.Stats.Climbing.Changed:Connect(function()
+        local canActivate = not ActionCheck();
         if lastActive ~= canActivate then
             Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
         end
