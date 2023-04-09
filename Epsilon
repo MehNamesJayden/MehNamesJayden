@@ -156,7 +156,7 @@ while task.wait(1) do
         task.wait(.1)
         Character:SetPrimaryPartCFrame(Rope.Part.CFrame)
         fireclickdetector(Rope.ClickDetector)
-        task.wait(16)
+        task.wait(20)
         
         Character:SetPrimaryPartCFrame(CFrame.new(4643.4482421875, -1367.0096435546875, 1269.9083251953125))
         task.wait(.1)
