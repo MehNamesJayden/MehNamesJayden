@@ -115,6 +115,16 @@ _G.Connections = {
             _G.Connections._climbing = nil;
         end;
         
+        if _G.Connections._statusAdded then
+            _G.Connections._statusAdded:Disconnect()
+            _G.Connections._statusAdded = nil;
+        end;
+        
+        if _G.Connections._statusRemoved then
+            _G.Connections._statusRemoved:Disconnect()
+            _G.Connections._statusRemoved = nil;
+        end;
+        
         Character = newCharacter;
         _G.Connections._walkSpeedUpdate = Character.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
             local canActivate = not ActionCheck();
@@ -129,24 +139,26 @@ _G.Connections = {
             if lastActive ~= canActivate then
                 Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
             end
-        end)
+        end);
+        
+        _G.Connections._statusAdded = Statuses.ChildAdded:Connect(function(Status)
+            local canActivate = not ActionCheck();
+            
+            if lastActive ~= canActivate then
+                Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
+            end
+        end);
+        
+        _G.Connections._statusRemoved = Statuses.ChildRemoved:Connect(function(Status)
+            local canActivate = not ActionCheck();
+            
+            if lastActive ~= canActivate then
+                Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
+            end
+        end);
     end);
     
-    _statusAdded = Statuses.ChildAdded:Connect(function(Status)
-        local canActivate = not ActionCheck();
-        
-        if lastActive ~= canActivate then
-            Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
-        end
-    end);
     
-    _statusRemoved = Statuses.ChildRemoved:Connect(function(Status)
-        local canActivate = not ActionCheck();
-        
-        if lastActive ~= canActivate then
-            Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
-        end
-    end);
     
 };
 
@@ -157,14 +169,30 @@ if Character then
         if lastActive ~= canActivate then
             Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
         end
-    end)
+    end);
     
     _G.Connections._climbing = Character.Stats.Climbing.Changed:Connect(function()
         local canActivate = not ActionCheck();
         if lastActive ~= canActivate then
             Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
         end
-    end)
+    end);
+    
+    _G.Connections._statusAdded = Statuses.ChildAdded:Connect(function(Status)
+        local canActivate = not ActionCheck();
+        
+        if lastActive ~= canActivate then
+            Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
+        end
+    end);
+    
+    _G.Connections._statusRemoved = Statuses.ChildRemoved:Connect(function(Status)
+        local canActivate = not ActionCheck();
+        
+        if lastActive ~= canActivate then
+            Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
+        end
+    end);
 end
 
 local trinketFolder = workspace.MouseIgnore
@@ -187,12 +215,6 @@ for iteration, Model in pairs(trinketFolder:GetChildren()) do
 end
 
 library:Ready();
-
-local waypoints = {
-    Unidentified = {
-        
-    }
-}
 
 local Rope = workspace.Map.Rope
 while task.wait(1) do
