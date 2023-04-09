@@ -52,6 +52,7 @@ end;
 local library = loadstring(game:HttpGet("https://pastebin.com/raw/npYdYVkB"))();
 local General = library:CreateSection("Combat");
 local AutoFarm = library:CreateSection("AutoFarm");
+local Trinkets = library:CreateSection("Trinkets");
 
 AutoFarm:Toggle("Active", function(bool)
     AutoFarmActive = bool;
@@ -62,7 +63,7 @@ AutoFarm:Dropdown("OrdenLane", {"Ankh", "Mysterious", "Ceeris"}, function(value)
 end)
 
 
-General:Toggle("AutoCharge",function(bool)
+General:Toggle("AutoCharge", function(bool)
     AutoCharge = bool;
     
     local canActivate = not ActionCheck();
@@ -73,6 +74,29 @@ end)
 
 General:Toggle("DisableFallDamage", function(bool)
     Character.FallDamage.Disabled = bool;
+end)
+
+local ESP_Settings = {
+    Enabled = false;
+    Target = "None";
+    TargetGroup = "None";
+    RenderDistance = 40;
+}
+
+Trinkets:Toggle("Enabled", function(bool)
+    ESP_Settings.Enabled = bool;
+end)
+
+Trinkets:Slider("Render Distance", {min = 40, max = 10000, precise = true}, function(dist)
+    ESP_Settings.RenderDistance = dist;
+end)
+
+Trinkets:Dropdown("Trinket Group (OVERRIDES TRINKET)", {"None", "Enchants", "Artifacts", "Sellables"}, function(group)
+    ESP_Settings.TargetGroup = group;
+end)
+
+Trinkets:Box("Trinket", function(trinket)
+    ESP_Settings.Target = trinket;
 end)
 
 
@@ -143,6 +167,27 @@ if Character then
     end)
 end
 
+local trinketFolder = workspace.MouseIgnore
+local spawnedTrinkets = {}
+
+_G.Connections._trinketSpawned = trinketFolder.ChildAdded:Connect(function(Child)
+    if Child:IsA("Model") then
+        table.insert(spawnedTrinkets, trinketFolder)
+    end
+end);
+
+_G.Connections._trinketDespawned = trinketFolder.ChildRemoved:Connect(function(Child)
+    table.remove(spawnedTrinkets, table.find(spawnedTrinkets, trinketFolder))
+end);
+
+for iteration, Model in pairs(trinketFolder:GetChildren()) do
+    if Model:IsA("Model") then
+        table.insert(spawnedTrinkets, trinketFolder)
+    end
+end
+
+library:Ready();
+
 local waypoints = {
     Unidentified = {
         
@@ -153,17 +198,14 @@ local Rope = workspace.Map.Rope
 while task.wait(1) do
     if AutoFarmActive then
         Character:SetPrimaryPartCFrame(CFrame.new(2763.840087890625, 461.7503967285156, -71.43907928466797))
-        task.wait(1)
-        if not AutoFarmActive then continue end
-         
+        task.wait(.5)
         Character:SetPrimaryPartCFrame(Rope.Part.CFrame)
+        task.wait(2)
         fireclickdetector(Rope.ClickDetector)
         task.wait(20)
-        if not AutoFarmActive then continue end
         
         Character:SetPrimaryPartCFrame(CFrame.new(4643.4482421875, -1367.0096435546875, 1269.9083251953125))
-        task.wait(1)
-        if not AutoFarmActive then continue end
+        task.wait(.5)
         
         if AutoFarmTo == "Ankh" then
             Character:SetPrimaryPartCFrame(workspace.Map.Orden.eyebeam2.CFrame)
@@ -174,5 +216,3 @@ while task.wait(1) do
         end
     end
 end
-
-library:Ready();
