@@ -2,6 +2,11 @@ local Player = game.Players.LocalPlayer
 local Character = Player.Character
 local Statuses = workspace.AliveData[Player.Name].Status
 
+local AutoCharge = false
+local AutoFarmActive = false
+local AutoFarmTo = ""
+
+
 if _G.Connections then
     local GUI = game.CoreGui:FindFirstChild("ScreenGui")
     if GUI then
@@ -11,13 +16,17 @@ if _G.Connections then
         end
     end
     
+    if _G.Connections._script then
+        _G.Connections._script:Destroy();
+        _G.Connections._script = nil;
+    end
+    
     for index, Connection in pairs(_G.Connections) do
         Connection:Disconnect()
         _G.Connections[index] = nil;
     end
 end
 
-local AutoCharge = false
 
 local ActionCheck = function()
     if AutoCharge then
@@ -42,6 +51,16 @@ end;
 
 local library = loadstring(game:HttpGet("https://pastebin.com/raw/npYdYVkB"))();
 local General = library:CreateSection("Combat");
+local AutoFarm = library:CreateSection("AutoFarm");
+
+AutoFarm:Toggle("Active", function(bool)
+    AutoFarmActive = bool;
+end)
+
+AutoFarm:Dropdown("OrdenLane", {"Ankh", "Mysterious", "Ceeris"}, function(value)
+    AutoFarmTo = value;
+end)
+
 
 General:Toggle("AutoCharge",function(bool)
     AutoCharge = bool;
@@ -59,14 +78,21 @@ end)
 
 local lastActive = false;
 _G.Connections = {
+    _script = script;
+    
     _characterAdded = Player.CharacterAdded:Connect(function(newCharacter)
-        if _G.Connections._WalkSpeedUpdate then
-            _G.Connections._WalkSpeedUpdate:Disconnect()
-            _G.Connections._WalkSpeedUpdate = nil;
+        if _G.Connections._walkSpeedUpdate then
+            _G.Connections._walkSpeedUpdate:Disconnect()
+            _G.Connections._walkSpeedUpdate = nil;
+        end;
+        
+        if _G.Connections._climbing then
+            _G.Connections._climbing:Disconnect()
+            _G.Connections._climbing = nil;
         end;
         
         Character = newCharacter;
-        _G.Connections._WalkSpeedUpdate = Character.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+        _G.Connections._walkSpeedUpdate = Character.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
             local canActivate = not ActionCheck();
             
             if lastActive ~= canActivate then
@@ -74,7 +100,7 @@ _G.Connections = {
             end
         end);
         
-        _G.Connections._Climbing = Character.Stats.Climbing.Changed:Connect(function()
+        _G.Connections._climbing = Character.Stats.Climbing.Changed:Connect(function()
             local canActivate = not ActionCheck();
             if lastActive ~= canActivate then
                 Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
@@ -82,7 +108,7 @@ _G.Connections = {
         end)
     end);
     
-    _StatusAdded = Statuses.ChildAdded:Connect(function(Status)
+    _statusAdded = Statuses.ChildAdded:Connect(function(Status)
         local canActivate = not ActionCheck();
         
         if lastActive ~= canActivate then
@@ -90,7 +116,7 @@ _G.Connections = {
         end
     end);
     
-    _StatusRemoved = Statuses.ChildRemoved:Connect(function(Status)
+    _statusRemoved = Statuses.ChildRemoved:Connect(function(Status)
         local canActivate = not ActionCheck();
         
         if lastActive ~= canActivate then
@@ -101,7 +127,7 @@ _G.Connections = {
 };
 
 if Character then
-    _G.Connections._WalkSpeedUpdate = Character.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+    _G.Connections._walkSpeedUpdate = Character.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
         local canActivate = not ActionCheck();
         
         if lastActive ~= canActivate then
@@ -109,7 +135,7 @@ if Character then
         end
     end)
     
-    _G.Connections._Climbing = Character.Stats.Climbing.Changed:Connect(function()
+    _G.Connections._climbing = Character.Stats.Climbing.Changed:Connect(function()
         local canActivate = not ActionCheck();
         if lastActive ~= canActivate then
             Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
@@ -117,4 +143,32 @@ if Character then
     end)
 end
 
-library:Ready()
+local waypoints = {
+    Unidentified = {
+        
+    }
+}
+
+local Rope = workspace.Map.Rope
+while task.wait(1) do
+    if AutoFarmActive then
+        Character:SetPrimaryPartCFrame(CFrame.new(2763.840087890625, 461.7503967285156, -71.43907928466797))
+        task.wait(.1)
+        Character:SetPrimaryPartCFrame(Rope.Part.CFrame)
+        fireclickdetector(Rope.ClickDetector)
+        task.wait(16)
+        
+        Character:SetPrimaryPartCFrame(CFrame.new(4643.4482421875, -1367.0096435546875, 1269.9083251953125))
+        task.wait(.1)
+        
+        if AutoFarmTo == "Ankh" then
+            Character:SetPrimaryPartCFrame(workspace.Map.Orden.eyebeam2.CFrame)
+        elseif AutoFarmTo == "Mysterious" then
+            Character:SetPrimaryPartCFrame(workspace.Map.Orden.eyebeam3.CFrame)
+        elseif AutoFarmTo == "Ceeris" then
+            Character:SetPrimaryPartCFrame(workspace.Map.Orden.eyebeam4.CFrame)
+        end
+    end
+end
+
+library:Ready();
