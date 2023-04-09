@@ -153,13 +153,17 @@ local Rope = workspace.Map.Rope
 while task.wait(1) do
     if AutoFarmActive then
         Character:SetPrimaryPartCFrame(CFrame.new(2763.840087890625, 461.7503967285156, -71.43907928466797))
-        task.wait(.1)
+        task.wait(1)
+        if not AutoFarmActive then continue end
+         
         Character:SetPrimaryPartCFrame(Rope.Part.CFrame)
         fireclickdetector(Rope.ClickDetector)
         task.wait(20)
+        if not AutoFarmActive then continue end
         
         Character:SetPrimaryPartCFrame(CFrame.new(4643.4482421875, -1367.0096435546875, 1269.9083251953125))
-        task.wait(.1)
+        task.wait(1)
+        if not AutoFarmActive then continue end
         
         if AutoFarmTo == "Ankh" then
             Character:SetPrimaryPartCFrame(workspace.Map.Orden.eyebeam2.CFrame)
