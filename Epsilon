@@ -22,8 +22,16 @@ if _G.Connections then
     
     if _G.drawings then
         for _, txt in pairs(_G.drawings) do
-            txt:Remove()
+            local success, response = pcall(function()
+                txt:Remove()
+                _G.drawings[_] = nil;
+            end)
+
+            if not success then
+                warn("Error produced while clearing drawings: "..response)
+            end
         end
+
         _G.drawings = nil;
     end
     
@@ -38,6 +46,27 @@ if _G.Connections then
         _G.Connections[index] = nil;
     end
 end
+
+local ActionCheck = function()
+    if AutoCharge then
+        local Artifact = Player.Data:FindFirstChild("Artifact");
+        if Artifact then
+            if Artifact.Value == "UnwaveringResolve" then
+                return false;
+            end
+        end
+        
+        if Character.Humanoid.Health <= 0 or Character.Humanoid.WalkSpeed >= Character.Stats.WalkSpeed.Value + 10 then
+            return true;
+        end
+    	
+    	if Character.Stats.Climbing.Value or Statuses:FindFirstChild("Knocked") --[[or Statuses:FindFirstChild("Climbing")]] or Statuses:FindFirstChild("Blocking") or Statuses:FindFirstChild("Stun") or Statuses:FindFirstChild("ReturnStun") or Statuses:FindFirstChild("ActiveCast") then
+    		return true;
+    	end
+    else
+        return true;
+    end
+end;
 
 _G.Coroutines = {};
 _G.drawings = {};
@@ -66,7 +95,7 @@ _G.Connections = {
         end;
         
         Character = newCharacter;
-        _G.Connections._walkSpeedUpdate = Character.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+        _G.Connections._walkSpeedUpdate = Character:WaitForChild("Humanoid"):GetPropertyChangedSignal("WalkSpeed"):Connect(function()
             local canActivate = not ActionCheck();
             
             if lastActive ~= canActivate then
@@ -99,26 +128,38 @@ _G.Connections = {
     end);
 };
 
-local ActionCheck = function()
-    if AutoCharge then
-        local Artifact = Player.Data:FindFirstChild("Artifact");
-        if Artifact then
-            if Artifact.Value == "UnwaveringResolve" then
-                return false;
-            end
-        end
+if Character then
+    _G.Connections._walkSpeedUpdate = Character.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+        local canActivate = not ActionCheck();
         
-        if Character.Humanoid.Health <= 0 or Character.Humanoid.WalkSpeed >= Character.Stats.WalkSpeed.Value + 10 then
-            return true;
+        if lastActive ~= canActivate then
+            Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
         end
-    	
-    	if Character.Stats.Climbing.Value or Statuses:FindFirstChild("Knocked") --[[or Statuses:FindFirstChild("Climbing")]] or Statuses:FindFirstChild("Blocking") or Statuses:FindFirstChild("Stun") or Statuses:FindFirstChild("ReturnStun") or Statuses:FindFirstChild("ActiveCast") then
-    		return true;
-    	end
-    else
-        return true;
-    end
-end;
+    end);
+    
+    _G.Connections._climbing = Character.Stats.Climbing.Changed:Connect(function()
+        local canActivate = not ActionCheck();
+        if lastActive ~= canActivate then
+            Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
+        end
+    end);
+    
+    _G.Connections._statusAdded = Statuses.ChildAdded:Connect(function(Status)
+        local canActivate = not ActionCheck();
+        
+        if lastActive ~= canActivate then
+            Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
+        end
+    end);
+    
+    _G.Connections._statusRemoved = Statuses.ChildRemoved:Connect(function(Status)
+        local canActivate = not ActionCheck();
+        
+        if lastActive ~= canActivate then
+            Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
+        end
+    end);
+end
 
 local library = loadstring(game:HttpGet("https://pastebin.com/raw/npYdYVkB"))();
 local General = library:CreateSection("Combat");
@@ -161,6 +202,12 @@ local trinketFolder = workspace.MouseIgnore;
 local spawnedTrinkets = {};
 local TrinketsInGroup = {};
 
+local Trinkets = {
+    "Opal", "Accursed", "Star Fragment", "Ruby", "Emerald", "Diamond", "Night Stone";
+    "Scroll", "Ice Essence", "Rift Gem";
+    "Ancient Plating", "Phoenix Feather", "Phoenix Down", "Spider Cloak";
+    
+}
 local TrinketTypes = {
     ["Enchants"] = {"Opal", "Accursed", "Star Fragment", "Ruby", "Emerald", "Diamond"};
     ["Spells"] = {"Scroll"};
@@ -225,6 +272,7 @@ _G.Connections._trinketDespawned = trinketFolder.ChildRemoved:Connect(function(C
 
         if draw then
             draw:Remove()
+            _G.drawings[table.find(_G.drawings, draw)] = nil;
         end
     end
 end);
@@ -328,38 +376,7 @@ Trinkets:Dropdown("Trinket Group", {"None", "Enchants", "Artifacts", "Sellables"
 end);
 library:Ready();
 
-if Character then
-    _G.Connections._walkSpeedUpdate = Character.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
-        local canActivate = not ActionCheck();
-        
-        if lastActive ~= canActivate then
-            Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
-        end
-    end);
-    
-    _G.Connections._climbing = Character.Stats.Climbing.Changed:Connect(function()
-        local canActivate = not ActionCheck();
-        if lastActive ~= canActivate then
-            Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
-        end
-    end);
-    
-    _G.Connections._statusAdded = Statuses.ChildAdded:Connect(function(Status)
-        local canActivate = not ActionCheck();
-        
-        if lastActive ~= canActivate then
-            Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
-        end
-    end);
-    
-    _G.Connections._statusRemoved = Statuses.ChildRemoved:Connect(function(Status)
-        local canActivate = not ActionCheck();
-        
-        if lastActive ~= canActivate then
-            Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
-        end
-    end);
-end
+
 
 _G.Coroutines.AutoFarm = coroutine.create(function()
     local Rope = workspace.Map.Rope
