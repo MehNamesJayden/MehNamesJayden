@@ -1,16 +1,15 @@
-local Player = game.Players.LocalPlayer
-local Character = Player.Character
-local Statuses = workspace.AliveData[Player.Name].Status
+local Player = game.Players.LocalPlayer;
+local Character = Player.Character;
+local Statuses = workspace.AliveData[Player.Name].Status;
 
-local AutoCharge = false
-local AutoFarmActive = false
-local AutoFarmTo = ""
-
+local lastActive = false;
+local AutoCharge = false;
+local AutoFarmActive = false;
+local AutoFarmTo = "";
 
 if _G.Connections then
     local GUI = game.CoreGui:FindFirstChild("ScreenGui")
     if GUI then
-        print("Found")
         if GUI:FindFirstChild("main") then
             GUI:Destroy()
         end
@@ -21,86 +20,27 @@ if _G.Connections then
         _G.Connections._script = nil;
     end
     
+    if _G.drawings then
+        for _, txt in pairs(_G.drawings) do
+            txt:Remove()
+        end
+        _G.drawings = nil;
+    end
+    
+    if _G.Coroutines then
+        for _, cor in pairs(_G.Coroutines) do
+            coroutine.close(cor)
+        end
+    end
+    
     for index, Connection in pairs(_G.Connections) do
         Connection:Disconnect()
         _G.Connections[index] = nil;
     end
 end
 
-
-local ActionCheck = function()
-    if AutoCharge then
-        local Artifact = Player.Data:FindFirstChild("Artifact");
-        if Artifact then
-            if Artifact.Value == "UnwaveringResolve" then
-                return false;
-            end
-        end
-        
-        if Character.Humanoid.Health <= 0 or Character.Humanoid.WalkSpeed >= Character.Stats.WalkSpeed.Value + 10 then
-            return true;
-        end
-    	
-    	if Character.Stats.Climbing.Value or Statuses:FindFirstChild("Knocked") --[[or Statuses:FindFirstChild("Climbing")]] or Statuses:FindFirstChild("Blocking") or Statuses:FindFirstChild("Stun") or Statuses:FindFirstChild("ReturnStun") or Statuses:FindFirstChild("ActiveCast") then
-    		return true;
-    	end
-    else
-        return true;
-    end
-end;
-
-local library = loadstring(game:HttpGet("https://pastebin.com/raw/npYdYVkB"))();
-local General = library:CreateSection("Combat");
-local AutoFarm = library:CreateSection("AutoFarm");
-local Trinkets = library:CreateSection("Trinkets");
-
-AutoFarm:Toggle("Active", function(bool)
-    AutoFarmActive = bool;
-end)
-
-AutoFarm:Dropdown("OrdenLane", {"Ankh", "Mysterious", "Ceeris"}, function(value)
-    AutoFarmTo = value;
-end)
-
-
-General:Toggle("AutoCharge", function(bool)
-    AutoCharge = bool;
-    
-    local canActivate = not ActionCheck();
-    if lastActive ~= canActivate then
-        Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
-    end
-end)
-
-General:Toggle("DisableFallDamage", function(bool)
-    Character.FallDamage.Disabled = bool;
-end)
-
-local ESP_Settings = {
-    Enabled = false;
-    Target = "None";
-    TargetGroup = "None";
-    RenderDistance = 40;
-}
-
-Trinkets:Toggle("Enabled", function(bool)
-    ESP_Settings.Enabled = bool;
-end)
-
-Trinkets:Slider("Render Distance", {min = 40, max = 10000, precise = true}, function(dist)
-    ESP_Settings.RenderDistance = dist;
-end)
-
-Trinkets:Dropdown("Trinket Group (OVERRIDES TRINKET)", {"None", "Enchants", "Artifacts", "Sellables"}, function(group)
-    ESP_Settings.TargetGroup = group;
-end)
-
-Trinkets:Box("Trinket", function(trinket)
-    ESP_Settings.Target = trinket;
-end)
-
-
-local lastActive = false;
+_G.Coroutines = {};
+_G.drawings = {};
 _G.Connections = {
     _script = script;
     
@@ -157,10 +97,228 @@ _G.Connections = {
             end
         end);
     end);
-    
-    
-    
 };
+
+local ActionCheck = function()
+    if AutoCharge then
+        local Artifact = Player.Data:FindFirstChild("Artifact");
+        if Artifact then
+            if Artifact.Value == "UnwaveringResolve" then
+                return false;
+            end
+        end
+        
+        if Character.Humanoid.Health <= 0 or Character.Humanoid.WalkSpeed >= Character.Stats.WalkSpeed.Value + 10 then
+            return true;
+        end
+    	
+    	if Character.Stats.Climbing.Value or Statuses:FindFirstChild("Knocked") --[[or Statuses:FindFirstChild("Climbing")]] or Statuses:FindFirstChild("Blocking") or Statuses:FindFirstChild("Stun") or Statuses:FindFirstChild("ReturnStun") or Statuses:FindFirstChild("ActiveCast") then
+    		return true;
+    	end
+    else
+        return true;
+    end
+end;
+
+local library = loadstring(game:HttpGet("https://pastebin.com/raw/npYdYVkB"))();
+local General = library:CreateSection("Combat");
+local AutoFarm = library:CreateSection("AutoFarm");
+local Trinkets = library:CreateSection("Trinkets");
+
+-- General
+General:Toggle("AutoCharge", function(bool)
+    AutoCharge = bool;
+    
+    local canActivate = not ActionCheck();
+    if lastActive ~= canActivate then
+        Character.CharacterHandler.Remotes.KeyInput:FireServer(Enum.KeyCode.G, canActivate)
+    end
+end);
+
+General:Toggle("DisableFallDamage", function(bool)
+    Character.FallDamage.Disabled = bool;
+end);
+
+-- AutoFarm
+AutoFarm:Toggle("Active", function(bool)
+    AutoFarmActive = bool;
+end);
+
+AutoFarm:Dropdown("OrdenLane", {"Ankh", "Mysterious", "Ceeris"}, function(value)
+    AutoFarmTo = value;
+end);
+
+-- ESP Setup
+
+local ESP_Settings = {
+    Enabled = false;
+    Target = "None";
+    TargetGroup = "None";
+    --RenderDistance = 40;
+}
+
+local trinketFolder = workspace.MouseIgnore;
+local spawnedTrinkets = {};
+local TrinketsInGroup = {};
+
+local TrinketTypes = {
+    ["Enchants"] = {"Opal", "Accursed", "Star Fragment", "Ruby", "Emerald", "Diamond"};
+    ["Spells"] = {"Scroll"};
+    ["Artifacts"] = {"Ancient Plating", "Phoenix Feather"};
+}
+
+local updateDrawing = function(Trinket)
+    local Text = _G.drawings[Trinket];
+    local Camera = workspace.CurrentCamera;
+    local vector, onScreen = Camera:WorldToScreenPoint(Trinket.Position);
+    
+    if onScreen then
+        local Distance = (Camera.CFrame.Position - Trinket.Position).Magnitude;
+        Text.Visible = true;
+        Text.Size = math.clamp(Distance/.5, 10, 20);
+        Text.Position = Vector2.new(vector.X, vector.Y);
+        Text.Text = Trinket.Name.." ("..math.ceil(Distance)..")"
+    else
+        Text.Visible = false
+    end
+end
+
+_G.Connections._trinketSpawned = trinketFolder.ChildAdded:Connect(function(Child)
+    local Trinket = Child:FindFirstChildOfClass("MeshPart") or Child:FindFirstChildOfClass("BasePart")
+            
+    if Trinket then
+        table.insert(spawnedTrinkets, Trinket)
+        
+        local newDrawing = Drawing.new("Text")
+        _G.drawings[Trinket] = newDrawing;
+        newDrawing.Text = Trinket.Name;
+        newDrawing.Color = Color3.new(1,1,1);
+        newDrawing.Outline = true;
+        newDrawing.OutlineColor = Color3.new(0,0,0);
+
+        if TrinketTypes[ESP_Settings.TargetGroup] then
+            if TrinketTypes[ESP_Settings.TargetGroup][Trinket.Name] then
+                table.insert(TrinketsInGroup, Trinket)
+                
+                if ESP_Settings.Enabled then
+                    updateDrawing(Trinket)
+                end
+            end
+        elseif Trinket.Name == Target then
+            table.insert(TrinketsInGroup, Trinket)
+
+            if ESP_Settings.Enabled then
+                updateDrawing(Trinket)
+            end
+        else
+            newDrawing.Visible = false;
+        end
+    end
+end);
+
+_G.Connections._trinketDespawned = trinketFolder.ChildRemoved:Connect(function(Child)
+    local Trinket = Child:FindFirstChildOfClass("MeshPart") or Child:FindFirstChildOfClass("BasePart")
+            
+    if Trinket then
+        table.remove(spawnedTrinkets, table.find(spawnedTrinkets, Trinket))
+        local draw = _G.drawings[Trinket]
+
+        if draw then
+            draw:Remove()
+        end
+    end
+end);
+
+for iteration, Model in pairs(trinketFolder:GetChildren()) do
+    local Trinket = Model:FindFirstChildOfClass("MeshPart") or Model:FindFirstChildOfClass("BasePart")
+    if Trinket then
+        table.insert(spawnedTrinkets, Trinket)
+        
+        local newDrawing = Drawing.new("Text")
+        _G.drawings[Trinket] = newDrawing;
+        newDrawing.Text = Trinket.Name;
+        newDrawing.Color = Color3.new(1,1,1)
+        newDrawing.Outline = true;
+        newDrawing.OutlineColor = Color3.new(0,0,0)
+
+        if TrinketTypes[ESP_Settings.TargetGroup] then
+            if TrinketTypes[ESP_Settings.TargetGroup][Trinket.Name] then
+                table.insert(TrinketsInGroup, Trinket)
+            end
+        elseif Trinket.Name == Target then
+            table.insert(TrinketsInGroup, Trinket)
+        else
+            newDrawing.Visible = false;
+        end
+    end
+end
+
+_G.Connections.TrinketESP = game:GetService("RunService").RenderStepped:Connect(function()
+    if ESP_Settings.Enabled == false then
+        return
+    else
+        for _, Trinket in pairs(TrinketsInGroup) do
+            updateDrawing(Trinket)
+        end
+    end
+end);
+
+Trinkets:Toggle("Enabled", function(bool)
+    ESP_Settings.Enabled = bool;
+
+    if not bool then
+        for _, Text in pairs(_G.drawings) do
+            Text.Visible = false;
+        end
+    else
+        for _, Trinket in pairs(TrinketsInGroup) do
+            if TrinketTypes[ESP_Settings.TargetGroup] then
+                if TrinketTypes[ESP_Settings.TargetGroup][Trinket.Name] then
+                    updateDrawing(Trinket)
+                end
+            elseif Trinket.Name == Target then
+                updateDrawing(Trinket)
+            else
+                newDrawing.Visible = false;
+            end
+        end
+    end
+end);
+
+Trinkets:Box("Trinket", function(Target)
+    ESP_Settings.Target = Target;
+
+    TrinketsInGroup = {}
+    for index, Trinket in pairs(spawnedTrinkets) do
+        pcall(function()
+            if Trinket.Name == Target then
+                table.insert(TrinketsInGroup, Trinket)
+                _G.drawings[Trinket].Visible = true;
+            else
+                _G.drawings[Trinket].Visible = false;
+            end
+        end)
+    end
+end);
+
+Trinkets:Dropdown("Trinket Group", {"None", "Enchants", "Artifacts", "Sellables"}, function(group)
+    ESP_Settings.TargetGroup = group;
+
+    TrinketsInGroup = {}
+    for index, Trinket in pairs(spawnedTrinkets) do
+        pcall(function()
+            if TrinketTypes[group] then
+                if TrinketTypes[group][Trinket.Name] then
+                    table.insert(TrinketsInGroup, Trinket)
+                    _G.drawings[Trinket].Visible = true;
+                end
+            else
+                _G.drawings[Trinket].Visible = false;
+            end
+        end)
+    end
+end);
+library:Ready();
 
 if Character then
     _G.Connections._walkSpeedUpdate = Character.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
@@ -195,46 +353,32 @@ if Character then
     end);
 end
 
-local trinketFolder = workspace.MouseIgnore
-local spawnedTrinkets = {}
-
-_G.Connections._trinketSpawned = trinketFolder.ChildAdded:Connect(function(Child)
-    if Child:IsA("Model") then
-        table.insert(spawnedTrinkets, trinketFolder)
-    end
-end);
-
-_G.Connections._trinketDespawned = trinketFolder.ChildRemoved:Connect(function(Child)
-    table.remove(spawnedTrinkets, table.find(spawnedTrinkets, trinketFolder))
-end);
-
-for iteration, Model in pairs(trinketFolder:GetChildren()) do
-    if Model:IsA("Model") then
-        table.insert(spawnedTrinkets, trinketFolder)
-    end
-end
-
-library:Ready();
-
-local Rope = workspace.Map.Rope
-while task.wait(1) do
-    if AutoFarmActive then
-        Character:SetPrimaryPartCFrame(CFrame.new(2763.840087890625, 461.7503967285156, -71.43907928466797))
-        task.wait(.5)
-        Character:SetPrimaryPartCFrame(Rope.Part.CFrame)
-        task.wait(2)
-        fireclickdetector(Rope.ClickDetector)
-        task.wait(20)
-        
-        Character:SetPrimaryPartCFrame(CFrame.new(4643.4482421875, -1367.0096435546875, 1269.9083251953125))
-        task.wait(.5)
-        
-        if AutoFarmTo == "Ankh" then
-            Character:SetPrimaryPartCFrame(workspace.Map.Orden.eyebeam2.CFrame)
-        elseif AutoFarmTo == "Mysterious" then
-            Character:SetPrimaryPartCFrame(workspace.Map.Orden.eyebeam3.CFrame)
-        elseif AutoFarmTo == "Ceeris" then
-            Character:SetPrimaryPartCFrame(workspace.Map.Orden.eyebeam4.CFrame)
+_G.Coroutines.AutoFarm = coroutine.create(function()
+    local Rope = workspace.Map.Rope
+    
+    while task.wait(1) do
+        if AutoFarmActive then
+            Character:SetPrimaryPartCFrame(CFrame.new(2763.840087890625, 461.7503967285156, -71.43907928466797))
+            task.wait(.5)
+            
+            Character:SetPrimaryPartCFrame(Rope.Part.CFrame)
+            task.wait(2+math.random(0,3))
+            
+            fireclickdetector(Rope.ClickDetector)
+            task.wait(20+math.random(0,10))
+            
+            Character:SetPrimaryPartCFrame(CFrame.new(4643.4482421875, -1367.0096435546875, 1269.9083251953125))
+            task.wait(.5)
+            
+            if AutoFarmTo == "Ankh" then
+                Character:SetPrimaryPartCFrame(workspace.Map.Orden.eyebeam2.CFrame)
+            elseif AutoFarmTo == "Mysterious" then
+                Character:SetPrimaryPartCFrame(workspace.Map.Orden.eyebeam3.CFrame)
+            elseif AutoFarmTo == "Ceeris" then
+                Character:SetPrimaryPartCFrame(workspace.Map.Orden.eyebeam4.CFrame)
+            end
         end
     end
-end
+end);
+
+coroutine.resume(_G.Coroutines.AutoFarm);
