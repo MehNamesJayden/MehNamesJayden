@@ -199,7 +199,7 @@ _G.Connections._trinketSpawned = trinketFolder.ChildAdded:Connect(function(Child
         if TrinketTypes[ESP_Settings.TargetGroup] then
             if TrinketTypes[ESP_Settings.TargetGroup][Trinket.Name] then
                 table.insert(TrinketsInGroup, Trinket)
-                
+
                 if ESP_Settings.Enabled then
                     updateDrawing(Trinket)
                 end
@@ -290,7 +290,7 @@ Trinkets:Box("Trinket", function(Target)
 
     TrinketsInGroup = {}
     for index, Trinket in pairs(spawnedTrinkets) do
-        pcall(function()
+        local Success, Response = pcall(function()
             if Trinket.Name == Target then
                 table.insert(TrinketsInGroup, Trinket)
                 _G.drawings[Trinket].Visible = true;
@@ -298,6 +298,10 @@ Trinkets:Box("Trinket", function(Target)
                 _G.drawings[Trinket].Visible = false;
             end
         end)
+
+        if not Success then
+            warn("Error produced while adding "..Trinket.Name..": "..Response)
+        end
     end
 end);
 
@@ -306,7 +310,7 @@ Trinkets:Dropdown("Trinket Group", {"None", "Enchants", "Artifacts", "Sellables"
 
     TrinketsInGroup = {}
     for index, Trinket in pairs(spawnedTrinkets) do
-        pcall(function()
+        local Success, Response = pcall(function()
             if TrinketTypes[group] then
                 if TrinketTypes[group][Trinket.Name] then
                     table.insert(TrinketsInGroup, Trinket)
@@ -316,6 +320,10 @@ Trinkets:Dropdown("Trinket Group", {"None", "Enchants", "Artifacts", "Sellables"
                 _G.drawings[Trinket].Visible = false;
             end
         end)
+
+        if not Success then
+            warn("Error produced while adding "..Trinket.Name..": "..Response)
+        end
     end
 end);
 library:Ready();
