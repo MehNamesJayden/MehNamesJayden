@@ -1,5 +1,5 @@
 local Player = game.Players.LocalPlayer;
-local Character = Player.Character;
+local Character = Player.Character or Player.CharacterAdded:Wait();
 local Statuses = workspace.AliveData[Player.Name].Status;
 
 local lastActive = false;
